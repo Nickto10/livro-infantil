@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>O Trem das Emoções</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lexend',sans-serif;background:#FFF8F0;min-height:100vh}
+button{font-family:'Lexend',sans-serif;cursor:pointer}
+input{font-family:'Lexend',sans-serif}
+
+/* ── Animations ────────────────────────────────── */
+@keyframes chug    {0%{transform:translateX(0) rotate(0deg)}25%{transform:translateX(5px) rotate(1.5deg)}75%{transform:translateX(-5px) rotate(-1.5deg)}100%{transform:translateX(0) rotate(0deg)}}
+@keyframes bounce  {0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes pulse   {0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes float   {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes fadeIn  {from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes steam   {0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-40px) scale(1.8)}}
+@keyframes trackroll{0%{background-position:0 0}100%{background-position:60px 0}}
+@keyframes breathExpand{0%{transform:scale(0.6)}100%{transform:scale(1.2)}}
+@keyframes breathContract{0%{transform:scale(1.2)}100%{transform:scale(0.6)}}
+@keyframes sparkle {0%,100%{opacity:0;transform:scale(0)}50%{opacity:1;transform:scale(1)}}
+@keyframes trainMove{0%{left:-120px}100%{left:calc(100% + 20px)}}
+
+.anim-chug   {animation:chug 0.9s infinite}
+.anim-bounce {animation:bounce 2s infinite}
+.anim-pulse  {animation:pulse 2.2s infinite}
+.anim-float  {animation:float 3s infinite}
+.anim-fadein {animation:fadeIn .4s ease both}
+
+/* ── Layout ─────────────────────────────────────── */
+#app{max-width:700px;margin:0 auto;min-height:100vh;padding:0 0 48px}
+
+/* ── Cards ──────────────────────────────────────── */
+.card{border-radius:20px;padding:20px 24px;margin-bottom:16px}
+.card-sm{border-radius:16px;padding:16px 18px;margin-bottom:10px}
+.quote-block{border-radius:16px;padding:16px;margin:12px 0;border-left:4px solid}
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn-main{color:#fff;border:none;border-radius:24px;padding:12px 28px;font-size:16px;font-weight:600;transition:transform .15s,box-shadow .15s}
+.btn-main:hover{transform:scale(1.05)}
+.btn-back{background:transparent;border-radius:20px;padding:10px 20px;font-size:14px;font-weight:500;border:2px solid}
+.btn-outline{background:transparent;border:2px solid;border-radius:20px;padding:10px 24px;font-size:14px;font-weight:500}
+
+/* ── Top bar ─────────────────────────────────────── */
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.topbar-btn{border-radius:20px;padding:8px 16px;font-size:13px;font-weight:500;border:1.5px solid;display:flex;align-items:center;gap:6px;background:transparent}
+
+/* ── Station grid ───────────────────────────────── */
+.station-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.station-card{border-radius:20px;padding:18px 12px;text-align:center;transition:all .2s;border:2px solid;position:relative;overflow:hidden;background:transparent}
+.station-card:hover{transform:scale(1.05) translateY(-2px)}
+
+/* ── Breathing circle ───────────────────────────── */
+#breath-circle{width:130px;height:130px;border-radius:50%;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;transition:width 3.4s ease,height 3.4s ease,background 3.4s ease}
+#breath-circle.inhale{width:170px;height:170px}
+#breath-circle.exhale{width:90px;height:90px}
+
+/* ── Steam bar ───────────────────────────────────── */
+#steam-bar-inner{height:100%;border-radius:8px;transition:width .6s ease}
+
+/* ── Mood buttons ───────────────────────────────── */
+.mood-btn{border-radius:20px;padding:14px 6px;text-align:center;transition:all .2s;border:2px solid;background:#fff;width:100%}
+.mood-btn.selected{transform:scale(1.08)}
+
+/* ── Overlay ─────────────────────────────────────── */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:999;padding:20px}
+#overlay.open{display:flex}
+#overlay-box{border-radius:24px;padding:28px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+
+/* ── Railroad track ─────────────────────────────── */
+.rail-track{height:8px;border-radius:4px;background:repeating-linear-gradient(90deg,#BCAAA4 0px,#BCAAA4 30px,#D7CCC8 30px,#D7CCC8 50px);animation:trackroll 1.2s linear infinite;margin:8px 0 4px}
+
+/* ── Mini train on track ─────────────────────────── */
+.track-container{position:relative;height:40px;overflow:hidden;margin-bottom:12px}
+.mini-train{position:absolute;top:4px;font-size:28px;animation:trainMove 5s linear infinite}
+
+/* ── Dicas grid ─────────────────────────────────── */
+.dicas-card{border-radius:16px;padding:16px 18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start}
+
+/* ── 3-col mini cards ───────────────────────────── */
+.mini-grid{display:grid;gap:10px}
+.mini-grid-3{grid-template-columns:repeat(3,1fr)}
+.mini-grid-2{grid-template-columns:repeat(2,1fr)}
+.mini-grid-5{grid-template-columns:repeat(5,1fr)}
+.mini-card{border-radius:14px;padding:14px 10px;text-align:center;background:#fff}
+
+/* ── Emotion pills (paz summary) ────────────────── */
+.emo-pill{border-radius:16px;padding:14px 6px;text-align:center}
+
+/* ── Progress dots ───────────────────────────────── */
+.progress-dots{display:flex;justify-content:center;gap:8px;margin-bottom:20px}
+.dot{width:10px;height:10px;border-radius:50%;background:#ddd;transition:background .3s}
+.dot.active{background:var(--accent)}
+
+/* ── Responsive ──────────────────────────────────── */
+@media(max-width:500px){
+  .mini-grid-3{grid-template-columns:1fr 1fr}
+  .mini-grid-5{grid-template-columns:repeat(3,1fr)}
+  .station-grid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="overlay"><div id="overlay-box"></div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  page: 'home',
+  breathPhase: 'idle', // idle | inhale | exhale | done
+  breathCount: 0,
+  steamClicks: 0,
+  mood: null,
+};
+
+let breathTimer = null;
+const PAGES = ['home','intro','alegria','medo','raiva','tristeza','paz','diario','dicas'];
+const PAGE_INDEX = {intro:1,alegria:2,medo:3,raiva:4,tristeza:5,paz:6,diario:7};
+
+// ═══════════════════════════════════════════════════════════════
+//  THEMES
+// ═══════════════════════════════════════════════════════════════
+const T = {
+  home:     {bg:'#FFF8F0',card:'#FFF3E8',accent:'#FF8F00',dark:'#5D4037',soft:'#FFE0B2'},
+  intro:    {bg:'#FFF8F0',card:'#FFF3E8',accent:'#FF8F00',dark:'#5D4037',soft:'#FFE0B2'},
+  alegria:  {bg:'#FFFDE7',card:'#FFF9C4',accent:'#F9A825',dark:'#5D4037',soft:'#FFF176'},
+  medo:     {bg:'#F3E5F5',card:'#EDE7F6',accent:'#7E57C2',dark:'#4527A0',soft:'#CE93D8'},
+  raiva:    {bg:'#FFF3F3',card:'#FFCDD2',accent:'#EF5350',dark:'#B71C1C',soft:'#EF9A9A'},
+  tristeza: {bg:'#E3F2FD',card:'#BBDEFB',accent:'#42A5F5',dark:'#0D47A1',soft:'#90CAF9'},
+  paz:      {bg:'#E8F5E9',card:'#C8E6C9',accent:'#66BB6A',dark:'#1B5E20',soft:'#A5D6A7'},
+  diario:   {bg:'#FFF8F0',card:'#FFF3E8',accent:'#FF8F00',dark:'#5D4037',soft:'#FFE0B2'},
+  dicas:    {bg:'#E8F5E9',card:'#C8E6C9',accent:'#66BB6A',dark:'#1B5E20',soft:'#A5D6A7'},
+};
+
+const MOODS = [
+  {emoji:'😄',label:'Alegria', bg:'#FFF176',border:'#F9A825',msg:'Que ótimo! Guarde esse brilho no bolso para os dias cinzentos. ☀️'},
+  {emoji:'😨',label:'Medo',    bg:'#CE93D8',border:'#7E57C2',msg:'Tudo bem ter medo. Respira fundo: inspire... e expire. O túnel tem saída! 🌬'},
+  {emoji:'😡',label:'Raiva',   bg:'#EF9A9A',border:'#EF5350',msg:'Sinto o vapor! Que tal soprar a vela 5 vezes? Conta comigo: 1, 2, 3... 💨'},
+  {emoji:'😢',label:'Tristeza',bg:'#90CAF9',border:'#42A5F5',msg:'A chuva também vai passar. Um abraço resolve muita coisa! 🫂'},
+  {emoji:'😌',label:'Calma',   bg:'#A5D6A7',border:'#66BB6A',msg:'Você chegou ao Porto da Calma. Aproveite esse momento de paz! 💙'},
+];
+
+const DICAS = [
+  {icon:'👁',title:'Observe os Sinais',text:'Preste atenção à linguagem corporal da criança: postura, expressão facial e tom de voz revelam muito sobre o estado emocional dela. Cada criança é única!'},
+  {icon:'💚',title:'Valide os Sentimentos',text:'Nunca minimize o que a criança sente. Dizer "faz sentido você se sentir assim" cria um espaço seguro para a expressão emocional saudável.'},
+  {icon:'🛡',title:'Crie um Ambiente Seguro',text:'A criança precisa saber que pode expressar qualquer emoção sem julgamento. O apoio do adulto é o trilho mais importante dessa viagem emocional.'},
+  {icon:'🔁',title:'Pratique com a Criança',text:'Realize as atividades de respiração e regulação junto com a criança. Quando o adulto modela as técnicas, o aprendizado é muito mais eficaz.'},
+  {icon:'⏱',title:'Respeite o Ritmo',text:'Cada criança viaja no seu próprio ritmo. Não force ou apresse o processo. O papel do adulto é ser o condutor gentil que aponta a luz no fim do túnel.'},
+  {icon:'🌈',title:'Todas as Emoções São Válidas',text:'Alegria, medo, raiva e tristeza são todas parte da vida. Ensine que nenhuma emoção é "ruim" — o que importa é como a expressamos e gerenciamos.'},
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function go(page) {
+  clearInterval(breathTimer);
+  breathTimer = null;
+  state.breathPhase = 'idle';
+  state.breathCount = 0;
+  if (page !== 'raiva') state.steamClicks = 0;
+  state.page = page;
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════
+const cur = () => T[state.page] || T.home;
+
+function wrap(inner, page) {
+  const t = T[page] || cur();
+  return `
+  <div style="min-height:100vh;background:${t.bg};padding:24px 20px 48px" class="anim-fadein">
+    ${topBar(t)}
+    ${progressDots(page)}
+    ${inner}
+  </div>`;
+}
+
+function topBar(t) {
+  return `
+  <div class="topbar">
+    <button class="topbar-btn" style="border-color:${t.accent}44;color:${t.dark}" onclick="go('home')">🗺 Mapa</button>
+    <span style="font-size:12px;color:${t.dark}88;font-weight:500">O Trem das Emoções</span>
+    <button class="topbar-btn" style="border-color:${t.accent}44;color:${t.dark}" onclick="go('dicas')">💡 Dicas</button>
+  </div>`;
+}
+
+function progressDots(page) {
+  const idx = PAGE_INDEX[page];
+  if (!idx) return '';
+  let dots = '';
+  for (let i=1; i<=7; i++) {
+    const active = i <= idx;
+    dots += `<div class="dot" style="${active ? 'background:'+cur().accent : ''}"></div>`;
+  }
+  return `<div class="progress-dots">${dots}</div>`;
+}
+
+function card(inner, extra='') {
+  const t = cur();
+  return `<div class="card" style="background:${t.card};${extra}">${inner}</div>`;
+}
+
+function quoteBlock(text) {
+  const t = cur();
+  return `<div class="quote-block" style="background:${t.soft};border-color:${t.accent}">
+    <p style="font-size:16px;color:${t.dark};line-height:1.7;font-style:italic;font-weight:500">${text}</p>
+  </div>`;
+}
+
+function btnMain(label, target, extra='') {
+  const t = cur();
+  return `<button class="btn-main" onclick="go('${target}')" style="background:${t.accent};box-shadow:0 4px 12px ${t.accent}55;${extra}">${label}</button>`;
+}
+
+function navRow(prev, next, nextLabel='Próxima Estação →') {
+  const t = cur();
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:12px">
+    <button class="btn-back" style="border-color:${t.dark}44;color:${t.dark}" onclick="go('${prev||'home'}')">&larr; Voltar</button>
+    ${next ? btnMain(nextLabel, next) : ''}
+  </div>`;
+}
+
+function h1(text) { const t=cur(); return `<h1 style="font-weight:700;font-size:28px;color:${t.dark};margin:0 0 8px">${text}</h1>`; }
+function h2(text) { const t=cur(); return `<h2 style="font-weight:600;font-size:20px;color:${t.dark};margin:0 0 8px">${text}</h2>`; }
+function p(text)  { const t=cur(); return `<p style="font-size:16px;color:${t.dark};line-height:1.7;margin:0 0 12px">${text}</p>`; }
+
+// ═══════════════════════════════════════════════════════════════
+//  PAGES
+// ═══════════════════════════════════════════════════════════════
+
+function pageHome() {
+  const items = [
+    {id:'intro',    icon:'🎫',color:'#FF8F00',bg:'#FFF3E8',label:'Início',    sub:'Bilhete Mágico',  badge:'INÍCIO'},
+    {id:'alegria',  icon:'☀️', color:'#F9A825',bg:'#FFF9C4',label:'Alegria',   sub:'Estação do Sol'},
+    {id:'medo',     icon:'🌬', color:'#7E57C2',bg:'#EDE7F6',label:'Medo',      sub:'Túnel do Vento'},
+    {id:'raiva',    icon:'🔴', color:'#EF5350',bg:'#FFCDD2',label:'Raiva',     sub:'Locomotiva a Vapor'},
+    {id:'tristeza', icon:'🌧', color:'#42A5F5',bg:'#BBDEFB',label:'Tristeza',  sub:'Estação da Garoa'},
+    {id:'paz',      icon:'💙', color:'#66BB6A',bg:'#C8E6C9',label:'Paz',       sub:'Porto da Calma'},
+    {id:'diario',   icon:'📖', color:'#FF8F00',bg:'#FFF3E8',label:'Meu Diário',sub:'Como estou hoje?'},
+  ];
+
+  const cards = items.map((item,i) => `
+    <button class="station-card ${i===0?'anim-pulse':''}" onclick="go('${item.id}')"
+      style="background:${item.bg};border-color:${item.color}44;box-shadow:0 3px 12px ${item.color}22">
+      ${item.badge ? `<div style="position:absolute;top:6px;right:8px;font-size:10px;background:${item.color};color:#fff;border-radius:8px;padding:2px 6px;font-weight:600">${item.badge}</div>` : ''}
+      <div style="font-size:32px;margin-bottom:6px">${item.icon}</div>
+      <div style="font-weight:700;font-size:14px;color:#333;margin-bottom:2px">${item.label}</div>
+      <div style="font-size:11px;color:#666">${item.sub}</div>
+    </button>`).join('');
+
+  return `
+  <div style="min-height:100vh;background:#FFF8F0;padding:24px 20px 48px" class="anim-fadein">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:72px;margin-bottom:10px" class="anim-chug">🚂</div>
+      <h1 style="font-weight:700;font-size:30px;color:#5D4037;margin:0 0 6px">O Trem das Emoções</h1>
+      <p style="font-size:15px;color:#8D6E63;margin:0">Uma viagem pelo coração de Pedro 💛</p>
+    </div>
+    <div class="track-container">
+      <div class="rail-track" style="position:absolute;top:20px;left:0;right:0;height:8px"></div>
+      <div class="mini-train">🚂</div>
+    </div>
+    <div class="station-grid" style="margin-bottom:24px">${cards}</div>
+    <div style="text-align:center">
+      <button class="btn-outline" style="border-color:#BCAAA4;color:#8D6E63;font-size:14px" onclick="go('dicas')">
+        💡 Dicas para Pais e Educadores
+      </button>
+    </div>
+  </div>`;
+}
+
+function pageIntro() {
+  return wrap(`
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="font-size:64px;margin-bottom:8px" class="anim-bounce">🚂</div>
+      ${h1('O Trem das Emoções')}
+      ${p('Uma viagem pelo coração de Pedro — onde cada parada é um sentimento novo e cada estação ensina algo especial sobre a vida.')}
+    </div>
+    ${card(`
+      ${h2('Capítulo 1 · O Bilhete Mágico')}
+      ${p('Pedro não apenas amava trens; ele era um pequeno mestre das ferrovias. Um dia, sua mãe lhe entregou um bilhete dourado:')}
+      ${quoteBlock('"Este é para o Trem das Emoções, Pedro! Cada parada é um sentimento novo que seu coração visita. Vamos viajar?"')}
+      ${p('Pedro sentiu um frio na barriga — aquele tipo de animação que faz a gente querer dar pulinhos — e subiu a bordo!')}
+    `)}
+    ${navRow('home','alegria','☀️ Próxima: Alegria')}
+  `, 'intro');
+}
+
+function pageAlegria() {
+  const t = T.alegria;
+  return wrap(`
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="font-size:64px;margin-bottom:8px" class="anim-bounce">☀️</div>
+      ${h1('Estação do Sol — Alegria')}
+    </div>
+    ${card(`
+      ${p('O mundo lá fora ficou amarelo brilhante, como se o sol tivesse descido para brincar!')}
+      ${quoteBlock('"Alegria é quando o peito fica quentinho e o sorriso nasce sozinho." — disse a mamãe.')}
+      ${p('Pedro lembrou do cheiro de trem novo e de como é bom ganhar um abraço apertado.')}
+    `)}
+    <div class="mini-grid mini-grid-2" style="margin:16px 0">
+      <div class="card" style="background:${t.card};margin:0">
+        <div style="font-size:28px;margin-bottom:8px">💛</div>
+        ${h2('O que é Alegria?')}
+        <p style="font-size:15px;color:${t.dark};line-height:1.6;margin:0">É aquele sentimento quentinho no peito que faz o sorriso nascer sozinho, sem a gente nem perceber.</p>
+      </div>
+      <div class="card" style="background:${t.card};margin:0">
+        <div style="font-size:28px;margin-bottom:8px">✨</div>
+        ${h2('Como guardar a Alegria?')}
+        <ul style="margin:0;padding-left:20px;color:${t.dark};font-size:15px;line-height:2">
+          <li>Lembre momentos felizes</li>
+          <li>Compartilhe com quem ama</li>
+          <li>Guarde no coração</li>
+        </ul>
+      </div>
+    </div>
+    ${card(`<div style="font-size:20px;margin-bottom:4px">💡</div><strong style="color:${t.accent};font-size:14px">Dica do Pedro:</strong> <span style="font-size:14px;color:${t.dark}"> Quando estiver aqui, guarde esse brilho no bolso para usar nos dias cinzentos!</span>`)}
+    ${navRow('intro','medo','🌬 Próxima: Medo')}
+  `, 'alegria');
+}
+
+function pageMedo() {
+  const t = T.medo;
+  const phase = state.breathPhase;
+  const count = state.breathCount;
+
+  const circleSize = phase==='inhale' ? 170 : phase==='exhale' ? 90 : 130;
+  const circleBg   = phase==='inhale' ? t.soft : phase==='exhale' ? t.accent+'66' : t.card;
+  const circleIcon = phase==='idle'?'🌸':phase==='inhale'?'🌺':phase==='exhale'?'🌱':'⭐';
+  const phaseText  = phase==='idle'?'Toque para começar':phase==='inhale'?'⬆️ Inspire... 1, 2, 3':phase==='exhale'?'⬇️ Expire... 1, 2, 3':'🌟 Muito bem! Você conseguiu!';
+
+  const btnBreath = (phase==='idle'||phase==='done')
+    ? `<button class="btn-main" onclick="startBreath()" style="background:${t.accent};margin-top:8px">${phase==='done'?'🔄 Respirar de Novo':'🌸 Respirar com o Pedro'}</button>`
+    : `<p style="font-size:13px;color:${t.accent};margin:0">Respiração ${count}/5</p>`;
+
+  return wrap(`
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="font-size:64px;margin-bottom:8px" class="anim-float">🌬</div>
+      ${h1('O Túnel do Vento — Medo')}
+    </div>
+    ${card(`
+      ${p('De repente, o trem entrou em um túnel escuro. "Estação Medo", anunciou o condutor com voz baixa. Pedro segurou a mão da mamãe bem forte.')}
+      ${quoteBlock('"O medo parece um túnel sem fim, mas ele é só um caminho. Se soprarmos o ar devagar, a luz aparece logo ali." — disse a mamãe.')}
+      ${p('Pedro respirou fundo, contou 1, 2, 3... e pluft! O sol voltou a brilhar! ✨')}
+    `)}
+    <div class="card" style="background:${t.card};text-align:center">
+      <h2 style="font-weight:600;font-size:18px;color:${t.dark};margin:0 0 16px">🌸 Respirar com o Pedro</h2>
+      <div id="breath-circle" class="${phase}" style="border-color:${t.accent};background:${circleBg};box-shadow:${(phase==='inhale'||phase==='exhale')?'0 0 30px '+t.accent+'44':'none'};width:${circleSize}px;height:${circleSize}px">
+        <span style="font-size:${phase==='inhale'?32:phase==='exhale'?20:26}px;transition:font-size 3.4s">${circleIcon}</span>
+      </div>
+      <div style="font-size:18px;font-weight:600;color:${t.dark};min-height:28px;margin-bottom:12px">${phaseText}</div>
+      ${btnBreath}
+    </div>
+    <div class="mini-grid mini-grid-3" style="margin:16px 0">
+      ${[['🤝','Segurar a mão','Procure apoio de alguém próximo'],['🌬','Respirar','Inspire e conte até 3 devagar'],['💡','Ver a luz','Note o fim do túnel chegando']].map(([ic,t2,d])=>`
+        <div class="mini-card" style="background:${t.card}">
+          <div style="font-size:28px;margin-bottom:6px">${ic}</div>
+          <strong style="display:block;font-size:13px;color:${t.dark};margin-bottom:4px">${t2}</strong>
+          <p style="font-size:12px;color:${t.dark}99;margin:0;line-height:1.5">${d}</p>
+        </div>`).join('')}
+    </div>
+    ${card(`<p style="font-size:15px;color:${t.dark};font-weight:500;margin:0">O medo é apenas um túnel — todo túnel tem uma saída, e a luz sempre aparece do outro lado quando respiramos com calma. 🌟</p>`)}
+    ${navRow('alegria','raiva','🔴 Próxima: Raiva')}
+  `, 'medo');
+}
+
+function pageRaiva() {
+  const t = T.raiva;
+  const clicks = state.steamClicks;
+  const done = clicks >= 5;
+  const pct = Math.max(0, 100 - clicks*20);
+
+  const steamGame = done ? `
+    <div style="text-align:center">
+      <div style="font-size:48px;margin-bottom:8px">🎉</div>
+      <p style="font-weight:600;font-size:18px;color:${t.dark};margin:0 0 12px">O vapor baixou! O trem está calmo agora.</p>
+      <button class="btn-outline" style="border-color:${t.accent};color:${t.dark}" onclick="resetSteam()">🔄 Jogar de Novo</button>
+    </div>` : `
+    <p style="font-size:14px;color:${t.dark}99;margin:0 0 16px;text-align:center">
+      Clique ${5-clicks} vez${clicks<4?'es':''} para o trem desacelerar!
+    </p>
+    <div style="background:#f0f0f0;border-radius:8px;height:12px;margin-bottom:6px;overflow:hidden">
+      <div id="steam-bar-inner" style="width:${pct}%;height:100%;background:linear-gradient(90deg,${t.accent},#FF1744);border-radius:8px"></div>
+    </div>
+    <div style="font-size:12px;color:${t.dark}88;margin-bottom:16px;text-align:center">Velocidade do vapor: ${pct}%</div>
+    <div style="text-align:center">
+      <button id="steam-btn" class="btn-main" onclick="addSteam()"
+        style="background:${t.accent};box-shadow:0 6px 20px ${t.accent}66;font-size:20px;padding:16px 40px">
+        💨 Soprar! (${clicks}/5)
+      </button>
+    </div>`;
+
+  return wrap(`
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="font-size:64px;margin-bottom:8px">💨</div>
+      ${h1('A Locomotiva a Vapor — Raiva')}
+    </div>
+    ${card(`
+      ${p('O trem começou a fazer um barulho alto: CHU-CHU! 💥 As janelas ficaram vermelhas.')}
+      ${quoteBlock('"Cuidado, Pedro! Esta é a Estação Raiva. Às vezes o vapor fica tão quente que parece que vamos explodir."')}
+      ${p('Pedro sentiu as mãos fecharem. Era hora de usar o truque especial!')}
+    `)}
+    <div class="card" style="background:${t.card}">${steamGame}</div>
+    <div class="mini-grid mini-grid-2" style="margin:16px 0">
+      ${[['1','Sentir a Raiva','Mãos fechadas, vapor quente por dentro'],['2','Contar até 5','1... 2... 3... 4... 5...'],['3','Soprar a Vela','Um sopro longo, como apagar o bolo'],['4','Calma Volta','O vapor baixa e o trem desliza suave']].map(([n,title,desc])=>`
+        <div class="card" style="background:${t.card};margin:0">
+          <div style="width:28px;height:28px;border-radius:14px;background:${t.accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin-bottom:8px">${n}</div>
+          <strong style="display:block;font-size:14px;color:${t.dark};margin-bottom:4px">${title}</strong>
+          <p style="font-size:13px;color:${t.dark}99;margin:0">${desc}</p>
+        </div>`).join('')}
+    </div>
+    ${navRow('medo','tristeza','🌧 Próxima: Tristeza')}
+  `, 'raiva');
+}
+
+function pageTristeza() {
+  const t = T.tristeza;
+  return wrap(`
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="font-size:64px;margin-bottom:8px" class="anim-float">🌧</div>
+      ${h1('A Estação da Garoa — Tristeza')}
+    </div>
+    ${card(`
+      ${p('O céu ficou cinza e gotinhas começaram a escorrer pelo vidro. Pedro sentiu um peso no coração e seus olhos ficaram úmidos.')}
+      ${quoteBlock('"A tristeza é como a chuva, Pedro. Ela limpa o caminho e nos ensina a dar valor ao sol. Chorar faz parte da viagem." — disse a mamãe, dando o abraço mais fofinho do mundo. 🤗')}
+    `)}
+    <div class="mini-grid mini-grid-3" style="margin:16px 0">
+      ${[['🌈','A Tristeza é Normal','Todo mundo sente tristeza. Ela nos ensina a valorizar os momentos felizes.'],['💧','Chorar Faz Bem','As lágrimas limpam o coração e abrem espaço para o sol voltar a brilhar.'],['🫂','Um Abraço Cura','Buscar o colo de quem amamos é um dos melhores remédios para os dias de garoa.']].map(([ic,title,desc])=>`
+        <div class="mini-card" style="background:${t.card}">
+          <div style="font-size:28px;margin-bottom:6px">${ic}</div>
+          <strong style="display:block;font-size:13px;color:${t.dark};margin-bottom:6px">${title}</strong>
+          <p style="font-size:12px;color:${t.dark};margin:0;line-height:1.5">${desc}</p>
+        </div>`).join('')}
+    </div>
+    ${navRow('raiva','paz','💙 Próxima: Paz')}
+  `, 'tristeza');
+}
+
+function pagePaz() {
+  const t = T.paz;
+  const emocoes = [['☀️','Alegria','#FFF9C4'],['🌬','Medo','#EDE7F6'],['🔴','Raiva','#FFCDD2'],['🌧','Tristeza','#BBDEFB'],['💙','Paz','#C8E6C9']];
+  return wrap(`
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="font-size:64px;margin-bottom:8px" class="anim-float">💙</div>
+      ${h1('O Destino Final — Porto da Calma')}
+    </div>
+    ${card(`
+      ${p('O trem parou em um lago azul e parado. "Estação Paz", disse o condutor. Pedro olhou para as árvores balançando devagar e sorriu.')}
+      <div class="quote-block" style="background:${t.soft};border-color:${t.accent}">
+        <p style="font-size:16px;color:${t.dark};line-height:1.7;font-style:italic;font-weight:500">Ele entendeu que as emoções são como as estações: o trem passa por todas elas, mas <strong>nenhuma dura para sempre.</strong></p>
+        <strong style="color:${t.accent};display:block;margin-top:8px">Agora, ele era o capitão do seu próprio coração. 💙</strong>
+      </div>
+    `)}
+    <div class="mini-grid mini-grid-5" style="margin:16px 0;gap:8px">
+      ${emocoes.map(([ic,lb,bg])=>`
+        <div class="emo-pill" style="background:${bg}">
+          <div style="font-size:24px;margin-bottom:4px">${ic}</div>
+          <span style="font-size:11px;font-weight:600;color:#333">${lb}</span>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap">
+      <button class="btn-main" onclick="go('diario')" style="background:${t.accent}">📖 Meu Diário de Bordo</button>
+      <button class="btn-outline" onclick="openDicas()" style="border-color:${t.accent};color:${t.dark};font-size:15px;padding:12px 24px">💡 Dicas para Pais</button>
+    </div>
+    ${navRow('tristeza','diario','📖 Meu Diário')}
+  `, 'paz');
+}
+
+function pageDiario() {
+  const t = T.diario;
+  const m = state.mood;
+
+  const moodBtns = MOODS.map((mood,i)=>`
+    <button class="mood-btn ${m&&m.label===mood.label?'selected':''}" onclick="selectMood(${i})"
+      style="background:${m&&m.label===mood.label?mood.bg:'#fff'};border-color:${m&&m.label===mood.label?mood.border:'#ddd'};
+      box-shadow:${m&&m.label===mood.label?'0 4px 16px '+mood.border+'66':'none'}">
+      <div style="font-size:28px;margin-bottom:4px">${mood.emoji}</div>
+      <span style="font-size:11px;font-weight:600;color:#333;display:block">${mood.label}</span>
+    </button>`).join('');
+
+  const moodCard = m ? `
+    <div style="background:${m.bg};border-radius:20px;padding:24px;text-align:center;margin-bottom:24px;border:2px solid ${m.border}">
+      <div style="font-size:48px;margin-bottom:8px">${m.emoji}</div>
+      <h2 style="font-weight:700;font-size:22px;color:#333;margin:0 0 8px">Hoje você está em: ${m.label}!</h2>
+      <p style="font-size:15px;color:#444;margin:0 0 16px">${m.msg}</p>
+      <svg width="180" height="60" viewBox="0 0 180 60" style="margin:8px auto;display:block">
+        <rect x="10" y="20" width="80" height="30" rx="10" fill="${m.border}" opacity="0.3"/>
+        <rect x="12" y="22" width="76" height="26" rx="8" fill="${m.border}" opacity="0.5"/>
+        <rect x="90" y="28" width="40" height="22" rx="8" fill="${m.border}" opacity="0.3"/>
+        <circle cx="30" cy="52" r="8" fill="${m.border}"/>
+        <circle cx="30" cy="52" r="4" fill="white" opacity="0.5"/>
+        <circle cx="70" cy="52" r="8" fill="${m.border}"/>
+        <circle cx="70" cy="52" r="4" fill="white" opacity="0.5"/>
+        <circle cx="110" cy="52" r="7" fill="${m.border}"/>
+        <circle cx="110" cy="52" r="3" fill="white" opacity="0.5"/>
+        <rect x="8" y="48" width="150" height="4" rx="2" fill="${m.border}" opacity="0.2"/>
+        <text x="50" y="42" text-anchor="middle" font-size="18" fill="${m.border}">🚂</text>
+      </svg>
+    </div>` : '';
+
+  return wrap(`
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="font-size:64px;margin-bottom:8px">📖</div>
+      ${h1('Meu Diário de Bordo')}
+      ${p('Como está o seu trem hoje? Escolha a cor da sua estação!')}
+    </div>
+    <div class="mini-grid mini-grid-5" style="margin-bottom:24px;gap:10px">${moodBtns}</div>
+    ${moodCard}
+    <div class="card" style="background:${t.card}">
+      <h3 style="font-weight:600;font-size:16px;color:${t.dark};margin:0 0 12px">🌸 Atividade — O Sopro Mágico</h3>
+      <div class="mini-grid mini-grid-3">
+        ${[['🌸','Cheire a Flor','Inspire devagar, conta até 3'],['🕯','Apague a Vela','Sopre longo, conta até 5'],['😊','Sinta a Diferença','Como você se sente?']].map(([ic,tt,dd])=>`
+          <div style="background:#fff;border-radius:14px;padding:14px 10px;text-align:center">
+            <div style="font-size:24px;margin-bottom:6px">${ic}</div>
+            <strong style="display:block;font-size:12px;color:${t.dark};margin-bottom:4px">${tt}</strong>
+            <p style="font-size:11px;color:${t.dark}88;margin:0">${dd}</p>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="card" style="background:${t.card};margin-top:0">
+      <h3 style="font-weight:600;font-size:16px;color:${t.dark};margin:0 0 12px">🎒 Atividade — Maleta de Emergência</h3>
+      <p style="font-size:14px;color:${t.dark}99;margin:0 0 12px">O que você levaria no seu vagão para se sentir melhor? Pense em 3 coisas especiais para você!</p>
+      <div class="mini-grid mini-grid-3">
+        ${[['1','Minha 1ª Escolha','Ex: Um brinquedo macio'],['2','Minha 2ª Escolha','Ex: Uma música calma'],['3','Minha 3ª Escolha','Ex: Um cheirinho gostoso']].map(([n,tt,dd])=>`
+          <div style="background:#fff;border-radius:14px;padding:14px 10px;text-align:center">
+            <div style="width:24px;height:24px;border-radius:12px;background:${t.accent};color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">${n}</div>
+            <strong style="display:block;font-size:12px;color:${t.dark};margin-bottom:4px">${tt}</strong>
+            <p style="font-size:10px;color:#999;margin:0;font-style:italic">${dd}</p>
+          </div>`).join('')}
+      </div>
+    </div>
+    ${navRow('paz',null)}
+  `, 'diario');
+}
+
+function pageDicas() {
+  const t = T.dicas;
+  const cards = DICAS.map(d=>`
+    <div class="dicas-card" style="background:${t.card}">
+      <div style="font-size:24px;flex-shrink:0;margin-top:2px">${d.icon}</div>
+      <div>
+        <div style="font-weight:600;font-size:15px;color:${t.dark};margin-bottom:4px">${d.title}</div>
+        <div style="font-size:13px;color:${t.dark}CC;line-height:1.6">${d.text}</div>
+      </div>
+    </div>`).join('');
+
+  return `
+  <div style="min-height:100vh;background:${t.bg};padding:24px 20px 48px" class="anim-fadein">
+    ${topBar(t)}
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:56px;margin-bottom:8px">💡</div>
+      <h1 style="font-weight:700;font-size:26px;color:${t.dark};margin:0 0 8px">Dicas para Pais e Educadores</h1>
+      <p style="font-size:15px;color:${t.dark}99;margin:0">Guia de apoio para a jornada emocional das crianças</p>
+    </div>
+    ${cards}
+    <div class="quote-block" style="background:${t.soft};border-color:${t.accent};margin-top:8px">
+      <p style="font-size:14px;color:${t.dark};margin:0;font-style:italic;font-weight:500">
+        "Cada criança viaja no seu próprio ritmo. O papel do adulto é ser o condutor gentil que aponta a luz no fim do túnel." 🌟
+      </p>
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <button class="btn-main" onclick="go('home')" style="background:${t.accent}">🚂 Voltar ao Mapa</button>
+    </div>
+  </div>`;
+}
+
+function dicasOverlayContent() {
+  const t = T.paz;
+  const cards = DICAS.map(d=>`
+    <div class="dicas-card" style="background:${t.card}">
+      <div style="font-size:22px;flex-shrink:0;margin-top:2px">${d.icon}</div>
+      <div>
+        <div style="font-weight:600;font-size:14px;color:${t.dark};margin-bottom:3px">${d.title}</div>
+        <div style="font-size:12px;color:${t.dark}CC;line-height:1.6">${d.text}</div>
+      </div>
+    </div>`).join('');
+  return `
+    ${cards}
+    <div class="quote-block" style="background:${t.soft};border-color:${t.accent};margin-top:8px">
+      <p style="font-size:13px;color:${t.dark};margin:0;font-style:italic;font-weight:500">"Cada criança viaja no seu próprio ritmo." 🌟</p>
+    </div>
+    <button class="btn-main" onclick="closeOverlay()" style="background:${t.accent};width:100%;margin-top:16px;border-radius:16px;padding:12px;font-size:15px">Fechar</button>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+function render() {
+  const app = document.getElementById('app');
+  let html = '';
+  switch(state.page) {
+    case 'home':     html = pageHome();     break;
+    case 'intro':    html = pageIntro();    break;
+    case 'alegria':  html = pageAlegria();  break;
+    case 'medo':     html = pageMedo();     break;
+    case 'raiva':    html = pageRaiva();    break;
+    case 'tristeza': html = pageTristeza(); break;
+    case 'paz':      html = pagePaz();      break;
+    case 'diario':   html = pageDiario();   break;
+    case 'dicas':    html = pageDicas();    break;
+    default:         html = pageHome();
+  }
+  app.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INTERACTIONS
+// ═══════════════════════════════════════════════════════════════
+
+// ── Breathing ────────────────────────────────────────
+function startBreath() {
+  if (state.breathPhase !== 'idle' && state.breathPhase !== 'done') return;
+  state.breathPhase = 'inhale';
+  state.breathCount = 0;
+  updateBreathUI();
+  let cnt = 0;
+  breathTimer = setInterval(() => {
+    cnt++;
+    state.breathCount = cnt;
+    state.breathPhase = state.breathPhase === 'inhale' ? 'exhale' : 'inhale';
+    if (cnt >= 5) {
+      clearInterval(breathTimer);
+      breathTimer = null;
+      state.breathPhase = 'done';
+    }
+    updateBreathUI();
+  }, 3500);
+}
+
+function updateBreathUI() {
+  const t = T.medo;
+  const phase = state.breathPhase;
+  const count = state.breathCount;
+  const circle = document.getElementById('breath-circle');
+  if (!circle) return;
+
+  const size   = phase==='inhale' ? 170 : phase==='exhale' ? 90 : 130;
+  const bg     = phase==='inhale' ? t.soft : phase==='exhale' ? t.accent+'66' : t.card;
+  const icon   = phase==='idle'?'🌸':phase==='inhale'?'🌺':phase==='exhale'?'🌱':'⭐';
+  const shadow = (phase==='inhale'||phase==='exhale') ? `0 0 30px ${t.accent}44` : 'none';
+  const iFSize = phase==='inhale'?'32px':phase==='exhale'?'20px':'26px';
+
+  circle.style.width  = size+'px';
+  circle.style.height = size+'px';
+  circle.style.background = bg;
+  circle.style.boxShadow  = shadow;
+  circle.innerHTML = `<span style="font-size:${iFSize};transition:font-size 3.4s">${icon}</span>`;
+
+  const phaseText = phase==='idle'?'Toque para começar':phase==='inhale'?'⬆️ Inspire... 1, 2, 3':phase==='exhale'?'⬇️ Expire... 1, 2, 3':'🌟 Muito bem! Você conseguiu!';
+  const textEl = circle.nextElementSibling;
+  if (textEl) textEl.textContent = phaseText;
+
+  const btnEl = textEl ? textEl.nextElementSibling : null;
+  if (btnEl) {
+    if (phase==='idle'||phase==='done') {
+      btnEl.innerHTML = `<button class="btn-main" onclick="startBreath()" style="background:${t.accent};margin-top:8px">${phase==='done'?'🔄 Respirar de Novo':'🌸 Respirar com o Pedro'}</button>`;
+    } else {
+      btnEl.innerHTML = `<p style="font-size:13px;color:${t.accent};margin:0">Respiração ${count}/5</p>`;
+    }
+  }
+}
+
+// ── Steam game ────────────────────────────────────────
+function addSteam() {
+  if (state.steamClicks >= 5) return;
+  state.steamClicks++;
+
+  // Button press animation
+  const btn = document.getElementById('steam-btn');
+  if (btn) { btn.style.transform='scale(0.93)'; setTimeout(()=>btn.style.transform='scale(1)',120); }
+
+  if (state.steamClicks >= 5) {
+    // Full re-render to show done state
+    setTimeout(() => render(), 200);
+    return;
+  }
+  // Update bar without full re-render
+  const pct = Math.max(0, 100 - state.steamClicks*20);
+  const bar = document.getElementById('steam-bar-inner');
+  if (bar) bar.style.width = pct+'%';
+  const countEl = document.querySelector('[data-steam-count]');
+  if (countEl) countEl.textContent = `Velocidade do vapor: ${pct}%`;
+  if (btn) btn.textContent = `💨 Soprar! (${state.steamClicks}/5)`;
+}
+
+function resetSteam() {
+  state.steamClicks = 0;
+  render();
+}
+
+// ── Mood selector ─────────────────────────────────────
+function selectMood(i) {
+  state.mood = MOODS[i];
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── Dicas overlay ─────────────────────────────────────
+function openDicas() {
+  const overlay = document.getElementById('overlay');
+  const box = document.getElementById('overlay-box');
+  const t = T.paz;
+  box.style.background = t.bg;
+  box.innerHTML = dicasOverlayContent();
+  overlay.classList.add('open');
+}
+
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeOverlay();
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
