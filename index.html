@@ -102,11 +102,133 @@ input{font-family:'Lexend',sans-serif}
   .mini-grid-5{grid-template-columns:repeat(3,1fr)}
   .station-grid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
 }
+
+/* ══ MODO CALMO ══════════════════════════════════════
+   Para todas as animações e transições bruscas.
+   Aplica-se adicionando a classe .calm ao <body>.
+   Respeita também a preferência do sistema operacional.
+   ════════════════════════════════════════════════════ */
+body.calm .anim-chug,
+body.calm .anim-bounce,
+body.calm .anim-pulse,
+body.calm .anim-float,
+body.calm .anim-fadein,
+body.calm .mini-train,
+body.calm .rail-track {
+  animation: none !important;
+  transition: none !important;
+}
+body.calm #breath-circle {
+  transition: background 0.8s ease !important;
+  /* mantém a transição de cor suave; só remove o resize abrupto */
+  width: 130px !important;
+  height: 130px !important;
+}
+body.calm #steam-bar-inner {
+  transition: width 0.3s ease !important;
+}
+body.calm .station-card:hover,
+body.calm .btn-main:hover,
+body.calm .mood-btn {
+  transform: none !important;
+}
+/* Reduções de contraste das cores de fundo (menos saturação visual) */
+body.calm {
+  filter: saturate(0.72);
+}
+
+/* ══ NARRAÇÃO ════════════════════════════════════════ */
+#audio-fab {
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  z-index: 900;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 18px;
+  font-family: 'Lexend', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  transition: transform .15s;
+  background: #E3F2FD;
+  color: #0D47A1;
+}
+#audio-fab:hover { transform: scale(1.06); }
+#audio-fab.playing { background: #0D47A1; color: #fff; }
+#audio-fab.unavailable { opacity: 0.4; cursor: not-allowed; }
+@keyframes audioWave {
+  0%,100%{ transform:scaleY(1) } 50%{ transform:scaleY(2.2) }
+}
+.audio-wave { display:flex;align-items:center;gap:2px;height:12px; }
+.audio-wave span { display:inline-block;width:3px;height:5px;background:currentColor;border-radius:2px; }
+#audio-fab.playing .audio-wave span:nth-child(1){animation:audioWave .55s 0s   infinite}
+#audio-fab.playing .audio-wave span:nth-child(2){animation:audioWave .55s .1s  infinite}
+#audio-fab.playing .audio-wave span:nth-child(3){animation:audioWave .55s .2s  infinite}
+#audio-fab.playing .audio-wave span:nth-child(4){animation:audioWave .55s .05s infinite}
+
+/* Botão flutuante Modo Calmo */
+#calm-fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 900;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 18px;
+  font-family: 'Lexend', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  transition: transform .15s, box-shadow .15s;
+}
+#calm-fab:hover { transform: scale(1.06); }
+#calm-fab.off { background: #E8F5E9; color: #1B5E20; }
+#calm-fab.on  { background: #1B5E20; color: #fff; }
+#calm-fab .fab-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+}
+#calm-fab.off .fab-dot { background: #66BB6A; }
+#calm-fab.on  .fab-dot { background: #A5D6A7; }
+
+/* Banner de aviso quando modo calmo está ativo */
+#calm-banner {
+  display: none;
+  background: #1B5E20;
+  color: #C8E6C9;
+  font-family: 'Lexend', sans-serif;
+  font-size: 12px;
+  text-align: center;
+  padding: 7px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 800;
+}
+body.calm #calm-banner { display: block; }
 </style>
 </head>
 <body>
+<div id="calm-banner">🍃 Modo Calmo ativado — animações pausadas para um ambiente mais tranquilo</div>
 <div id="app"></div>
 <div id="overlay"><div id="overlay-box"></div></div>
+<button id="audio-fab" onclick="toggleNarration()" title="Narração em áudio">
+  <div class="audio-wave">
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <span id="audio-fab-label">Ouvir</span>
+</button>
+<button id="calm-fab" class="off" onclick="toggleCalm()" title="Alternar Modo Calmo">
+  <span class="fab-dot"></span>
+  <span id="calm-fab-label">Modo Calmo</span>
+</button>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -118,11 +240,46 @@ const state = {
   breathCount: 0,
   steamClicks: 0,
   mood: null,
+  calmMode: false,
 };
 
 let breathTimer = null;
 const PAGES = ['home','intro','alegria','medo','raiva','tristeza','paz','diario','dicas'];
 const PAGE_INDEX = {intro:1,alegria:2,medo:3,raiva:4,tristeza:5,paz:6,diario:7};
+
+// ═══════════════════════════════════════════════════════════════
+//  MODO CALMO
+// ═══════════════════════════════════════════════════════════════
+function applyCalm(active) {
+  document.body.classList.toggle('calm', active);
+  const fab = document.getElementById('calm-fab');
+  const lbl = document.getElementById('calm-fab-label');
+  if (!fab) return;
+  if (active) {
+    fab.className = 'on';
+    lbl.textContent = 'Modo Calmo ✓';
+  } else {
+    fab.className = 'off';
+    lbl.textContent = 'Modo Calmo';
+  }
+  try { localStorage.setItem('trem_calm', active ? '1' : '0'); } catch(e){}
+}
+
+function toggleCalm() {
+  state.calmMode = !state.calmMode;
+  applyCalm(state.calmMode);
+}
+
+function initCalm() {
+  // Respeita preferência do sistema (prefers-reduced-motion)
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Respeita escolha salva
+  let saved = null;
+  try { saved = localStorage.getItem('trem_calm'); } catch(e){}
+  const active = saved === '1' || (saved === null && prefersReduced);
+  state.calmMode = active;
+  applyCalm(active);
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  THEMES
@@ -157,9 +314,182 @@ const DICAS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+//  NARRAÇÃO — textos por página
+// ═══════════════════════════════════════════════════════════════
+const NARRACOES = {
+  home: [
+    'Olá, pequeno viajante! Bem-vindo ao Trem das Emoções!',
+    'Neste livro especial, você vai viajar pelo coração de Pedro.',
+    'Cada estação é um sentimento diferente. Escolha uma para começar!'
+  ],
+  intro: [
+    'Pedro não apenas amava trens... ele era um pequeno mestre das ferrovias!',
+    'Um dia, sua mãe lhe entregou um bilhete dourado bem especial.',
+    'Este bilhete é para o Trem das Emoções, Pedro! Cada parada é um sentimento novo que seu coração visita.',
+    'Pedro sentiu um frio na barriga... aquele tipo de animação que faz a gente querer dar pulinhos!',
+    'E então, ele subiu a bordo. A viagem havia começado!'
+  ],
+  alegria: [
+    'Próxima parada: Estação Alegria!',
+    'O mundo lá fora ficou amarelo brilhante, como se o sol tivesse descido para brincar.',
+    'Alegria é quando o peito fica quentinho e o sorriso nasce sozinho, disse a mamãe.',
+    'Pedro lembrou do cheiro de trem novo e de como é bom ganhar um abraço apertado.',
+    'Dica do Pedro: quando estiver aqui, guarde esse brilho no bolso para usar nos dias cinzentos!'
+  ],
+  medo: [
+    'De repente, o trem entrou em um túnel escuro...',
+    'Estação Medo, anunciou o condutor com voz baixa.',
+    'Pedro segurou a mão da mamãe bem forte.',
+    'O medo parece um túnel sem fim, mas ele é só um caminho. Se soprarmos o ar devagar, a luz aparece logo ali, disse a mamãe.',
+    'Pedro respirou fundo, contou um, dois, três... e pluft! O sol voltou a brilhar!',
+    'Lembre-se: todo túnel tem uma saída. Você pode usar o botão de respiração para praticar com o Pedro!'
+  ],
+  raiva: [
+    'O trem começou a fazer um barulho alto: CHU CHU!',
+    'As janelas ficaram vermelhas. Cuidado, Pedro! Esta é a Estação Raiva.',
+    'Às vezes o vapor fica tão quente que parece que vamos explodir!',
+    'Pedro sentiu as mãos fecharem. Mas ele sabia o que fazer.',
+    'Primeiro: sinta a raiva. Segundo: conte até cinco. Terceiro: sopre como se estivesse apagando uma vela.',
+    'Tente clicar no botão de soprar cinco vezes. Veja o vapor baixar!'
+  ],
+  tristeza: [
+    'O céu ficou cinza e gotinhas começaram a escorrer pelo vidro.',
+    'Pedro sentiu um peso no coração e seus olhos ficaram úmidos.',
+    'A tristeza é como a chuva, Pedro. Ela limpa o caminho e nos ensina a dar valor ao sol. Chorar faz parte da viagem.',
+    'A mamãe deu o abraço mais fofinho do mundo.',
+    'Lembre-se: a tristeza é normal. Chorar faz bem. E um abraço cura muita coisa!'
+  ],
+  paz: [
+    'O trem parou em um lago azul e parado.',
+    'Estação Paz, disse o condutor com voz suave.',
+    'Pedro olhou para as árvores balançando devagar e sorriu.',
+    'Ele entendeu que as emoções são como as estações: o trem passa por todas elas, mas nenhuma dura para sempre.',
+    'Agora, ele era o capitão do seu próprio coração.',
+    'Alegria, medo, raiva, tristeza e paz. Todas fazem parte da viagem!'
+  ],
+  diario: [
+    'Bem-vindo ao seu Diário de Bordo!',
+    'Como está o seu trenzinho hoje?',
+    'Escolha o emoji que representa o seu sentimento agora.',
+    'Não existe resposta certa ou errada. Cada sentimento é válido e faz parte de você!'
+  ],
+  dicas: [
+    'Olá, adulto querido! Estas dicas são especialmente para você.',
+    'Ao usar o livro com a criança, observe a linguagem corporal dela.',
+    'Nunca minimize o que ela sente. Dizer faz sentido você se sentir assim cria um espaço seguro.',
+    'Cada criança viaja no seu próprio ritmo. O seu papel é ser o condutor gentil que aponta a luz no fim do túnel.'
+  ]
+};
+
+// ── Motor de narração (Web Speech API) ───────────────────────
+const Narr = {
+  synth: window.speechSynthesis || null,
+  utterances: [],
+  idx: 0,
+  active: false,
+  paused: false,
+  ptBRVoice: null,
+
+  // Busca a melhor voz em português do Brasil disponível
+  loadVoice() {
+    if (!this.synth) return;
+    const voices = this.synth.getVoices();
+    const preferred = [
+      v => v.lang === 'pt-BR' && v.localService,
+      v => v.lang === 'pt-BR',
+      v => v.lang.startsWith('pt'),
+    ];
+    for (const test of preferred) {
+      const found = voices.find(test);
+      if (found) { this.ptBRVoice = found; return; }
+    }
+  },
+
+  isAvailable() {
+    return !!this.synth;
+  },
+
+  start(page) {
+    if (!this.synth) return;
+    this.stop();
+    this.loadVoice();
+    const lines = NARRACOES[page] || [];
+    if (!lines.length) return;
+    this.active = true;
+    this.idx = 0;
+    this._speakNext(lines);
+    this._updateFab(true);
+  },
+
+  _speakNext(lines) {
+    if (this.idx >= lines.length) {
+      this.stop();
+      return;
+    }
+    const utt = new SpeechSynthesisUtterance(lines[this.idx]);
+    utt.lang = 'pt-BR';
+    utt.rate = 0.88;
+    utt.pitch = 1.05;
+    utt.volume = 1;
+    if (this.ptBRVoice) utt.voice = this.ptBRVoice;
+    utt.onend = () => {
+      if (!this.active) return;
+      this.idx++;
+      // Small pause between sentences for children
+      setTimeout(() => this._speakNext(lines), 380);
+    };
+    utt.onerror = () => { this.stop(); };
+    this.synth.speak(utt);
+  },
+
+  stop() {
+    if (this.synth) this.synth.cancel();
+    this.active = false;
+    this.idx = 0;
+    this._updateFab(false);
+  },
+
+  toggle(page) {
+    if (this.active) { this.stop(); }
+    else             { this.start(page); }
+  },
+
+  _updateFab(playing) {
+    const fab = document.getElementById('audio-fab');
+    const lbl = document.getElementById('audio-fab-label');
+    const topBtn = document.getElementById('topbar-audio-btn');
+    if (fab) {
+      if (playing) { fab.classList.add('playing');    lbl.textContent = 'Pausar'; }
+      else         { fab.classList.remove('playing'); lbl.textContent = 'Ouvir'; }
+    }
+    if (topBtn) {
+      topBtn.textContent = playing ? '⏹ Parar' : '🔊 Ouvir';
+      topBtn.style.background = playing ? '#0D47A144' : 'transparent';
+    }
+  }
+};
+
+// Pré-carrega vozes (browsers exigem isso antes de usar)
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices(); // trigger load
+  window.speechSynthesis.addEventListener('voiceschanged', () => Narr.loadVoice());
+}
+
+function toggleNarration() {
+  const fab = document.getElementById('audio-fab');
+  if (!Narr.isAvailable()) {
+    fab.classList.add('unavailable');
+    alert('Narração não disponível neste navegador. Tente no Chrome ou Safari.');
+    return;
+  }
+  Narr.toggle(state.page);
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════════════════════
 function go(page) {
+  Narr.stop();
   clearInterval(breathTimer);
   breathTimer = null;
   state.breathPhase = 'idle';
@@ -189,7 +519,7 @@ function topBar(t) {
   return `
   <div class="topbar">
     <button class="topbar-btn" style="border-color:${t.accent}44;color:${t.dark}" onclick="go('home')">🗺 Mapa</button>
-    <span style="font-size:12px;color:${t.dark}88;font-weight:500">O Trem das Emoções</span>
+    <button class="topbar-btn" id="topbar-audio-btn" style="border-color:${t.accent}44;color:${t.dark};background:transparent" onclick="toggleNarration()">🔊 Ouvir</button>
     <button class="topbar-btn" style="border-color:${t.accent}44;color:${t.dark}" onclick="go('dicas')">💡 Dicas</button>
   </div>`;
 }
@@ -271,6 +601,17 @@ function pageHome() {
       <div class="mini-train">🚂</div>
     </div>
     <div class="station-grid" style="margin-bottom:24px">${cards}</div>
+
+    <!-- Modo Calmo destaque na home -->
+    <div id="home-calm-card" style="border-radius:20px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;border:2px solid #A5D6A7;background:#E8F5E9;cursor:pointer" onclick="toggleCalm();updateHomeCalmCard()">
+      <div style="font-size:32px;flex-shrink:0" id="home-calm-icon">🍃</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:15px;color:#1B5E20;margin-bottom:2px" id="home-calm-title">Modo Calmo</div>
+        <div style="font-size:13px;color:#2E7D32;line-height:1.45" id="home-calm-desc">Para crianças sensíveis a animações e estímulos visuais. Toca aqui para ativar!</div>
+      </div>
+      <div id="home-calm-pill" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;background:#fff;color:#1B5E20;border:1.5px solid #66BB6A;flex-shrink:0">Desligado</div>
+    </div>
+
     <div style="text-align:center">
       <button class="btn-outline" style="border-color:#BCAAA4;color:#8D6E63;font-size:14px" onclick="go('dicas')">
         💡 Dicas para Pais e Educadores
@@ -563,6 +904,14 @@ function pageDicas() {
       <p style="font-size:15px;color:${t.dark}99;margin:0">Guia de apoio para a jornada emocional das crianças</p>
     </div>
     ${cards}
+    <div style="border-radius:16px;padding:16px 18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;background:#E8F5E9;border:1.5px solid #66BB6A">
+      <div style="font-size:24px;flex-shrink:0;margin-top:2px">🍃</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:15px;color:#1B5E20;margin-bottom:4px">Modo Calmo — para crianças sensíveis</div>
+        <div style="font-size:13px;color:#2E7D32;line-height:1.6;margin-bottom:10px">Pausa todas as animações e reduz a saturação das cores. Recomendado para TEA com hipersensibilidade sensorial, TDAH e crianças que ficam facilmente superestimuladas.</div>
+        <button id="dicas-calm-btn" onclick="toggleCalm();updateDicasCalmBtn()" style="background:#1B5E20;color:#fff;border:none;border-radius:16px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Lexend',sans-serif">🍃 Ativar Modo Calmo</button>
+      </div>
+    </div>
     <div class="quote-block" style="background:${t.soft};border-color:${t.accent};margin-top:8px">
       <p style="font-size:14px;color:${t.dark};margin:0;font-style:italic;font-weight:500">
         "Cada criança viaja no seu próprio ritmo. O papel do adulto é ser o condutor gentil que aponta a luz no fim do túnel." 🌟
@@ -726,7 +1075,45 @@ document.getElementById('overlay').addEventListener('click', function(e) {
 // ═══════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════
+
+// Sync the home page calm card text after toggle
+function updateHomeCalmCard() {
+  const pill = document.getElementById('home-calm-pill');
+  const title = document.getElementById('home-calm-title');
+  const desc = document.getElementById('home-calm-desc');
+  const icon = document.getElementById('home-calm-icon');
+  const card = document.getElementById('home-calm-card');
+  if (!pill) return;
+  if (state.calmMode) {
+    pill.textContent = 'Ligado ✓';
+    pill.style.background = '#1B5E20';
+    pill.style.color = '#fff';
+    pill.style.borderColor = '#1B5E20';
+    if (title) title.textContent = 'Modo Calmo ativado';
+    if (desc)  desc.textContent = 'Animações pausadas. Toque novamente para desligar.';
+    if (icon)  icon.textContent = '🌿';
+    if (card)  card.style.background = '#C8E6C9';
+  } else {
+    pill.textContent = 'Desligado';
+    pill.style.background = '#fff';
+    pill.style.color = '#1B5E20';
+    pill.style.borderColor = '#66BB6A';
+    if (title) title.textContent = 'Modo Calmo';
+    if (desc)  desc.textContent = 'Para crianças sensíveis a animações e estímulos visuais. Toca aqui para ativar!';
+    if (icon)  icon.textContent = '🍃';
+    if (card)  card.style.background = '#E8F5E9';
+  }
+}
+
+function updateDicasCalmBtn() {
+  const btn = document.getElementById('dicas-calm-btn');
+  if (!btn) return;
+  btn.textContent = state.calmMode ? '🌿 Modo Calmo ativado ✓' : '🍃 Ativar Modo Calmo';
+  btn.style.background = state.calmMode ? '#2E7D32' : '#1B5E20';
+}
+
 render();
+initCalm();
 </script>
 </body>
 </html>
